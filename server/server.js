@@ -18,9 +18,9 @@ wss.on("connection", (ws) => {
   console.log("New client connected");
 
   const drivers = [
-    { name: "Gaidov", lapTimes: createLapTimes(50, 52) },
-    { name: "Nasko", lapTimes: createLapTimes(52, 53) },
-    { name: "Bosho rosso driver", lapTimes: createLapTimes(53, 54) },
+    { name: "Lacrima", lapTimes: createLapTimes(50, 52) },
+    { name: "YCT", lapTimes: createLapTimes(52, 53) },
+    { name: "Bosho Rosso", lapTimes: createLapTimes(53, 54) },
   ];
 
   let lapIndex = 0;
@@ -74,7 +74,7 @@ const makeALap = (drivers, lapIndex, ws, driverIndex, finishLap) => {
   setTimeout(() => {
     const driverData = {
       lap,
-      driver: driver.name,
+      team: driver.name,
       lapTime: driver.lapTimes[lapIndex], // Handle missing lap times
     };
 
