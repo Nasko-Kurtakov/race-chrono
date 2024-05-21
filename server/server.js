@@ -81,7 +81,7 @@ wss.on("connection", (ws) => {
   let lapIndex = 0;
 
   const sendLapTimes = (i) => {
-    makeALap(drivers, i, ws, () => {
+    makeALap(drivers, i, ws, 0, () => {
       if (i + 1 == LAP_COUNT) {
         verboseLog("Race completed");
         ws.close();
@@ -109,7 +109,7 @@ const sendData = (ws, data) => {
   ws.send(data);
 };
 
-const makeALap = (drivers, lapIndex, ws, finishLap) => {
+const makeALap2 = (drivers, lapIndex, ws, finishLap) => {
   const lap = lapIndex + 1;
   drivers.forEach((driver, index) => {
     let gap;
@@ -140,4 +140,41 @@ const makeALap = (drivers, lapIndex, ws, finishLap) => {
       }
     }, delay);
   });
+};
+
+const makeALap = (drivers, lapIndex, ws, driverIndex, finishLap) => {
+  const lap = lapIndex + 1;
+
+  let gap;
+  let delay;
+  let driver = drivers[driverIndex];
+  if (driverIndex == 0) {
+    //this is the first driver
+    //its gap is 0, as he has noone in front of him
+    gap = 0;
+    delay = 0;
+  } else {
+    // gap =
+    // drivers[driverIndex - 1].lapTimes[lapIndex] - driver.lapTimes[lapIndex];
+    delay = Math.abs((lapIndex === 0 ? START_GAP : gap) * 1000);
+  }
+
+  setTimeout(() => {
+    const driverData = {
+      lap,
+      driver: driver.name,
+      lapTime: driver.lapTimes[lapIndex], // Handle missing lap times
+    };
+
+    sendData(ws, JSON.stringify(driverData));
+    // verboseLog(`current gap for ${driver.name} is ${gap}`);
+
+    if (driverIndex == drivers.length - 1) {
+      //this is the last driver in the pack so this lap is finished
+      finishLap();
+      return;
+    }
+
+    makeALap(drivers, lapIndex, ws, driverIndex + 1, finishLap);
+  }, delay);
 };

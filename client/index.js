@@ -16,18 +16,6 @@ ws.onmessage = (event) => {
   const { lap, driver, lapTime } = data;
 
   writeDownLapRecord(lap, lapTime, driver);
-  //   writeDownGap(lap, gap);
-  //   if (driver === "Gaidov") {
-  //     currentLap = lap;
-  //     winnerLapTime = lapTime;
-
-  //     writeDownLapRecord(lap, lapTime, "Gaidov");
-  //   } else if (driver === "Nasko" && currentLap === lap) {
-  //     writeDownLapRecord(lap, lapTime, "Nasko");
-
-  //     const gap = (winnerLapTime - lapTime).toFixed(3);
-  //     writeDownGap(lap, gap);
-  //   }
 };
 
 ws.onclose = () => {
