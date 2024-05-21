@@ -48,7 +48,7 @@ wss.on("connection", (ws) => {
         };
 
         sendData(ws, JSON.stringify(loserData));
-        verboseLog(gapInSeconds);
+        verboseLog(`current gap is ${gapInSeconds}`);
         lapIndex += 1;
 
         // Schedule the next lap times to be sent
@@ -58,7 +58,7 @@ wss.on("connection", (ws) => {
           verboseLog("Race completed");
           ws.close();
         }
-      }, gapInSeconds * 1000 + (lapIndex == 0 ? START_GAP * 1000 : 0)); // Delay based on the lap time gap
+      }, (lapIndex == 0 ? START_GAP : gapInSeconds) * 1000); // Delay based on the lap time gap
     }
   };
 
@@ -68,13 +68,12 @@ wss.on("connection", (ws) => {
   // Handle client disconnection
   ws.on("close", () => {
     console.log("Client disconnected");
-    clearInterval(intervalId);
   });
 });
 
 console.log(`WebSocket server is running on ws://localhost:${WS_PORT}`);
 
-const verboseLog = () => console.log(...arguments);
+const verboseLog = (data) => console.log(data);
 
 const sendData = (ws, data) => {
   verboseLog(data);
