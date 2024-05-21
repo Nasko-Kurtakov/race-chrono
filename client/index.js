@@ -15,17 +15,19 @@ ws.onmessage = (event) => {
 
   const { lap, driver, lapTime } = data;
 
-  if (driver === "Gaidov") {
-    currentLap = lap;
-    winnerLapTime = lapTime;
+  writeDownLapRecord(lap, lapTime, driver);
+  //   writeDownGap(lap, gap);
+  //   if (driver === "Gaidov") {
+  //     currentLap = lap;
+  //     winnerLapTime = lapTime;
 
-    writeDownLapRecord(lap, lapTime, "Gaidov");
-  } else if (driver === "Nasko" && currentLap === lap) {
-    writeDownLapRecord(lap, lapTime, "Nasko");
+  //     writeDownLapRecord(lap, lapTime, "Gaidov");
+  //   } else if (driver === "Nasko" && currentLap === lap) {
+  //     writeDownLapRecord(lap, lapTime, "Nasko");
 
-    const gap = (winnerLapTime - lapTime).toFixed(3);
-    writeDownGap(lap, gap);
-  }
+  //     const gap = (winnerLapTime - lapTime).toFixed(3);
+  //     writeDownGap(lap, gap);
+  //   }
 };
 
 ws.onclose = () => {
@@ -41,7 +43,7 @@ ws.onclose = () => {
 
 const writeDownLapRecord = (lapNumber, lapTime, driver) => {
   const lapTimeElement = document.createElement("li");
-  lapTimeElement.textContent = `Lap ${lapNumber} - ${driver}: ${lapTime}s`;
+  lapTimeElement.textContent = `Lap ${lapNumber} - ${driver}: ${lapTime}`;
   lapTimes.appendChild(lapTimeElement);
 };
 
