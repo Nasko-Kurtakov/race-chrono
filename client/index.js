@@ -6,6 +6,12 @@ let winnerLapTime = null;
 const lapTimes = document.getElementById("lapTimes");
 const gaps = document.getElementById("gaps");
 
+const friendlyTeamName = "YCT";
+const enemyTeams = ["Lacrima", "Bosho Rosso"];
+
+const enemyTeamsData = {};
+let ourLatestTime = 0;
+
 ws.onopen = () => {
   console.log("Connected to the WebSocket server");
 };
@@ -13,35 +19,34 @@ ws.onopen = () => {
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
 
-  const { lap, driver, lapTime } = data;
+  const { lap, team, lapTime } = data;
 
-  if (driver === "Gaidov") {
-    currentLap = lap;
-    winnerLapTime = lapTime;
-
-    writeDownLapRecord(lap, lapTime, "Gaidov");
-  } else if (driver === "Nasko" && currentLap === lap) {
-    writeDownLapRecord(lap, lapTime, "Nasko");
-
-    const gap = (winnerLapTime - lapTime).toFixed(3);
-    writeDownGap(lap, gap);
+  if (team == friendlyTeamName) {
+    ourLatestTime = Date.now();
+  } else {
+    enemyTeamsData[team] = {
+      lap,
+      lapTime,
+    };
+    updateGap(team, enemyTeamsData[team]);
   }
+
+  writeDownLapRecord(lap, lapTime, team);
 };
 
 ws.onclose = () => {
-  if (data === "Race completed") {
-    const raceCompletedElement = document.createElement("li");
-    raceCompletedElement.textContent = "Race completed";
-    lapTimes.appendChild(raceCompletedElement);
-    gaps.appendChild(raceCompletedElement.cloneNode(true));
-    return;
-  }
+  const raceCompletedElement = document.createElement("li");
+  raceCompletedElement.textContent = "Race completed";
+  lapTimes.appendChild(raceCompletedElement);
+  gaps.appendChild(raceCompletedElement.cloneNode(true));
+
   console.log("Disconnected from the WebSocket server");
+  return;
 };
 
 const writeDownLapRecord = (lapNumber, lapTime, driver) => {
   const lapTimeElement = document.createElement("li");
-  lapTimeElement.textContent = `Lap ${lapNumber} - ${driver}: ${lapTime}s`;
+  lapTimeElement.textContent = `Lap ${lapNumber} - ${driver}: ${lapTime}`;
   lapTimes.appendChild(lapTimeElement);
 };
 
@@ -49,4 +54,9 @@ const writeDownGap = (lap, gap) => {
   const gapElement = document.createElement("li");
   gapElement.textContent = `Lap ${lap} - Gap: ${gap}s`;
   gaps.appendChild(gapElement);
+};
+
+const updateGap = (teamName, raceData) => {
+  const ellapsedTime = Date.now() - ourLatestTime; //gap between us crossing the finish line and this team crossing the finish line
+  console.log(`Gap to team ${teamName} is: ${ellapsedTime / 1000.0} sec`);
 };
