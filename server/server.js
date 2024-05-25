@@ -13,13 +13,17 @@ function generateLapTime(min, max) {
 
 wss.on("connection", (ws) => {
   console.log("New client connected");
-
+  obj = {
+    "1": [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+    "0": [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    // "1": [6, 6, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4],
+  };
   const sendLapTimes = (lap, teamId) => {
     console.log("in sendLapTimes");
     const data = {
       lap,
       driver: teamId,
-      lapTime: teamId == 0 ? 4 : 5,
+      lapTime: obj[teamId][lap],
     };
     console.log(data.lapTime)
 
@@ -28,11 +32,15 @@ wss.on("connection", (ws) => {
       sendLapTimes(lap + 1, teamId)
     }, data.lapTime * 1000);
 
+    if (!obj[teamId][lap]) {
+      ws.close()
+    }
   }
 
   for (let index = 0; index < COMPETITORS; index++) {
-    sendLapTimes(1, index);
+    sendLapTimes(0, index);
   }
+
 });
 
 // Handle client disconnection
