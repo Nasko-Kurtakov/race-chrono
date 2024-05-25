@@ -19,17 +19,23 @@ wss.on("connection", (ws) => {
     const data = {
       lap,
       driver: teamId,
-      lapTime: teamId == 0 ? 4 : 5,
+      lapTime: teamId == 0 ? 5 : 4,
     };
-    console.log(data.lapTime)
+    console.log(data.lapTime);
 
     setTimeout(() => {
+      sendCount++;
       sendData(ws, JSON.stringify(data));
-      sendLapTimes(lap + 1, teamId)
+
+      if (sendCount != 20) {
+        sendLapTimes(lap + 1, teamId);
+      } else {
+        ws.close();
+      }
     }, data.lapTime * 1000);
+  };
 
-  }
-
+  sendCount = 0;
   for (let index = 0; index < COMPETITORS; index++) {
     sendLapTimes(1, index);
   }
@@ -42,7 +48,6 @@ wss.on("connection", (ws) => {
 // });
 
 console.log(`WebSocket server is running on ws://localhost:${WS_PORT}`);
-
 
 const sendData = (ws, data) => {
   // verboseLog(data);
