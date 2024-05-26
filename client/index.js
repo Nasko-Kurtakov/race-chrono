@@ -1,43 +1,12 @@
 
 obj = {}
 
-const dynamicSetUp = (badTeams, ourTeam, comparisons,) => {
-  const teamToName = {
-    "r60365": "EURORACING ASD",
-    "r60364": "SUNLIFE RACING TEAM",
-    "r60357": "PAGG ASPOCK",
-    "r60370": "ANTHER RACING",
+const dynamicSetUp = (badTeams, ourTeam, comparisons) => {
+  document.getElementById("theTr").innerHTML = "";
 
-    "r60363": "K R T",
-    "r60375": "PFV",
-
-
-    "r60372": "RACING PRODUCT ZETA",
-    "r60362": "CARRSERVICE EURORACING",
-    "r60373": "HOBIE KART",
-    "r60351": "RACING GIRLS",
-    "r60355": "MARMITTE BOLLENTI",
-    "r60368": "CARLONI RACING 3",
-    "r60359": "TM KART RACING 2",
-    "r60369": "KEEPING ASPHALT RACING",
-    "r60371": "J-TEAM",
-    "r60361": "MSV RACING",
-    "r60374": "TEAM TOSCANO RACING TRIVENETO",
-    "r60376": "THE LOST TEAM",
-
-    "r60367": "CARLONI RACING 2",
-    "r60356": "KEC MOTORSPORT",
-
-    "r60366": "CARLONI RACING",
-    "r60353": "RACING PRODUCT",
-    "r60360": "MENEGHINO RACING TEAM",
-
-    "r60352": "VSANTOS TEAM",
-    "r60358": "TM KART RACING",
-    "r60354": "RP ERBA PIU' ACADEMY",
-  }
-
-  document.getElementById("currentTeam").innerText = teamToName[ourTeam];
+  document.getElementById("currentTeam").innerText = teams[ourTeam];
+  document.getElementById("theTr").innerHTML=`<th>Team Name</th>
+  <th>Last Lap</th>`
 
   // All other headers
   comparisons.forEach(c => {
@@ -48,13 +17,14 @@ const dynamicSetUp = (badTeams, ourTeam, comparisons,) => {
 
   // The table body for each team
   const tableBody = document.getElementById('tableBody');
+  tableBody.innerHTML = "";
   badTeams.forEach(team => {
     const tr = document.createElement('tr');
     tr.id = team;
 
     const tdName = document.createElement('td');
     tr.appendChild(tdName);
-    tdName.innerText = teamToName[team];
+    tdName.innerText = teams[team];
 
     const tdLastLap = document.createElement('td');
     tr.appendChild(tdLastLap);
@@ -71,6 +41,10 @@ const dynamicSetUp = (badTeams, ourTeam, comparisons,) => {
     tdDelta.id = `${team}_delta_on_track`;
 
     tableBody.appendChild(tr);
+  });
+
+  allTeams.forEach(team => {
+    updateTable(team);
   });
 }
 
@@ -129,35 +103,41 @@ let updateTable = (team) => {
     badTeams.forEach(team => {
       comparisons.forEach(c => {
         const time = compareLastNLaps(ourTeam, team, c);
-        updateComparisonsCell(team, c, time);
-        const deltaOnTrack = compareDeltaOnTrack(ourTeam, team);
-        if (deltaOnTrack !== false) {
+        updateCell(team, `last_${c}`, time);
 
-          updateDelta(team, deltaOnTrack);
-        }
+        const deltaOnTrack = compareDeltaOnTrack(ourTeam, team);
+        updateCell(team, 'delta_on_track', deltaOnTrack);
+
       })
     })
   } else {
     comparisons.forEach(c => {
       const time = compareLastNLaps(ourTeam, team, c);
-      updateComparisonsCell(team, c, time);
+      updateCell(team, `last_${c}`, time);
+
       const deltaOnTrack = compareDeltaOnTrack(ourTeam, team);
-      if (deltaOnTrack !== false) {
-        updateDelta(team, deltaOnTrack);
-      }
+      updateCell(team, 'delta_on_track', deltaOnTrack);
+
     })
   }
 }
 
-const updateComparisonsCell = (team, c, time) => {
-  if (isNaN(time)) {
+const updateCell = (team, cellSuffix, time, comparisonTime = time) => {
+
+  if ((typeof(time) == "number" && isNaN(time)) || time == false || time == "NaN") {
     return;
   }
-  const comparisonCell = document.getElementById(`${team}_last_${c}`);
-  comparisonCell.innerText = time;
 
-  colorCellBasedOnTime(time, comparisonCell)
+  const cell = document.getElementById(`${team}_${cellSuffix}`);
+  if (cell == undefined) {
+    return;
+  }
+
+  cell.innerText = time;
+
+  colorCellBasedOnTime(comparisonTime, cell);
 }
+
 
 const colorCellBasedOnTime = (time, element) => {
   if ( time > 0) {
@@ -168,26 +148,15 @@ const colorCellBasedOnTime = (time, element) => {
 }
 
 const updateLastLapCell = (team) => {
-  const lastLapCell = document.getElementById(`${team}_last_lap`);
-  // Name
-
   const lastLap = obj[team].laps.slice(-1)[0];
   const secondToLastLap = obj[team].laps.slice(-2)[0];
+  const timeDifference = lastLap - secondToLastLap;
+  if (lastLap) {
 
-  lastLapCell.innerText = floatToTimeString(lastLap);
-
-  colorCellBasedOnTime(lastLap - secondToLastLap, lastLapCell);
-}
-
-const updateDelta = (team, time) => {
-  if (isNaN(time)) {
-    return;
+    updateCell(team, 'last_lap', floatToTimeString(lastLap), timeDifference);
   }
-  const deltaCell = document.getElementById(`${team}_delta_on_track`);
-  deltaCell.innerText = time;
-
-  colorCellBasedOnTime(time, deltaCell)
 }
+
 
 // Config
 
@@ -208,8 +177,79 @@ const mapping = {
   "drivenTime": "c14"
 };
 
+// Parsing from first message
+//
+const parseTeamsFromMessage = (htmlMessage) => {
+    // Create a DOM parser
+    const parser = new DOMParser();
+    // Parse the HTML message
+    const doc = parser.parseFromString(`<table>${htmlMessage}</table>`, 'text/html');
 
+    // Get all rows in the table
+    const rows = doc.querySelectorAll('tr');
+
+    // Initialize an empty map to store teamId: Team Name pairs
+    const teamMap = {};
+
+    // Iterate over each row
+    rows.forEach(row => {
+
+        // Get the team ID from the row's data-id attribute
+        const teamId = row.getAttribute('data-id');
+
+        // Get the Team Name from the <td> with data-id="*c4"
+        const teamNameCell = row.querySelector('td[data-id$="c4"]');
+
+        // If both teamId and teamNameCell are present, add them to the map
+        if (teamId && teamNameCell) {
+            const teamName = teamNameCell.textContent.trim();
+            teamMap[teamId.replace(mapping["name"])] = teamName;
+        }
+    });
+
+    // debugger
+    function generateCheckboxes(map) {
+      const container = document.getElementById('checkbox-container');
+      for (const [id, name] of Object.entries(map)) {
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.id = id;
+          checkbox.name = name;
+
+          const label = document.createElement('label');
+          label.htmlFor = id;
+          label.appendChild(document.createTextNode(name));
+
+          const br = document.createElement('br');
+
+          container.appendChild(checkbox);
+          container.appendChild(label);
+          container.appendChild(br);
+      }
+    }
+
+    generateCheckboxes(teamMap);
+
+    return teamMap;
+}
+
+
+let teams;
 const comparisons = [1, 3, 5];
+
+
+function theBadTeams() {
+  const checkboxes = document.querySelectorAll('#checkbox-container input[type="checkbox"]');
+  const checkedCheckboxes = [];
+
+  checkboxes.forEach(checkbox => {
+      if (checkbox.checked) {
+          checkedCheckboxes.push(checkbox.id);
+      }
+  });
+
+  return checkedCheckboxes;
+}
 
 let ourTeam = "r60359";
 let badTeams = ["r60352"];
@@ -263,6 +303,12 @@ allTeams.forEach(team => {
 })
 
 ws.onmessage = (event) => {
+  if (teams == undefined && event.data.includes("grid||")) {
+    const grid = event.data.split("\n").filter( line => line.includes("grid||"))[0].split("|")[2];
+    teams = parseTeamsFromMessage(grid);
+    dynamicSetUp(theBadTeams(), ourTeam, comparisons);
+  }
+
   if(event.data.includes(mapping["lastLap"]) && allTeams.some(team => event.data.includes(team))) {
     allTeams.forEach(team => {
       teamLastLap = getLastLapForTeam(team, event.data.split("\n"));
@@ -274,5 +320,3 @@ ws.onmessage = (event) => {
     })
   }
 }
-
-dynamicSetUp(badTeams, ourTeam, comparisons);
