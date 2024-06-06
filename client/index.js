@@ -1,11 +1,10 @@
-
 obj = {}
 
 const dynamicSetUp = (badTeams, ourTeam, comparisons) => {
   document.getElementById("theTr").innerHTML = "";
 
   document.getElementById("currentTeam").innerText = teams[ourTeam];
-  document.getElementById("theTr").innerHTML=`<th>Team Name</th>
+  document.getElementById("theTr").innerHTML=`<th style='width:500px'>Team Name</th>
   <th>Last Lap</th>`
 
   // All other headers
@@ -14,6 +13,18 @@ const dynamicSetUp = (badTeams, ourTeam, comparisons) => {
     td.innerText = `Last ${c} laps`;
     document.getElementById("theTr").appendChild(td);
   })
+
+  const tdDelta = document.createElement("td");
+  tdDelta.innerText = `Delta On Track*`;
+  document.getElementById("theTr").appendChild(tdDelta);
+
+  const td = document.createElement("td");
+  td.innerText = `On Track`;
+  document.getElementById("theTr").appendChild(td);
+
+  const tdLaps = document.createElement("td");
+  tdLaps.innerText = `Laps`;
+  document.getElementById("theTr").appendChild(tdLaps);
 
   // The table body for each team
   const tableBody = document.getElementById('tableBody');
@@ -41,16 +52,31 @@ const dynamicSetUp = (badTeams, ourTeam, comparisons) => {
     tdDelta.id = `${team}_delta_on_track`;
 
     tableBody.appendChild(tr);
+
+    const tdtimeOnTrack = document.createElement('td');
+    tr.appendChild(tdtimeOnTrack);
+    tdtimeOnTrack.id = `${team}_time_on_track`;
+
+    const tdLaps = document.createElement('td');
+    tr.appendChild(tdLaps);
+    tdLaps.id = `${team}_laps_count`;
+
+    tableBody.appendChild(tr);
   });
 
-  allTeams.forEach(team => {
+  allTeams().forEach(team => {
     updateTable(team);
   });
 }
 
 const timeStringToFloat = (timeString) => {
-  const [minutes, seconds] = timeString.split(':');
-  return parseFloat(minutes) * 60 + parseFloat(seconds);
+  const [left, right] = timeString.split(':');
+
+  if (right){
+    return parseFloat(left) * 60 + parseFloat(right);
+  } else {
+    return parseFloat(left);
+  }
 }
 
 function floatToTimeString(floatSeconds) {
@@ -69,8 +95,17 @@ const getLastLapForTeam = (team, arrayOfData) => {
   const currentTeamLastLapKey = `${team}${mapping['lastLap']}`;
   lastLapLine = arrayOfData.map(line => line.split("|")).filter(lineArr => lineArr[0] == currentTeamLastLapKey)[0];
   if (lastLapLine) {
-    console.log("Recording for ", team, " = ", lastLapLine);
+    console.log("Recording for ", team, " = ", lastLapLine, timeStringToFloat(lastLapLine[2]));
     return timeStringToFloat(lastLapLine[2]);
+  }
+}
+
+const getLastOnTrackForTeam = (team, arrayOfData) => {
+  const currentTeamLastLapKey = `${team}${mapping['timeOnTrack']}`;
+  lastLapLine = arrayOfData.map(line => line.split("|")).filter(lineArr => lineArr[0] == currentTeamLastLapKey)[0];
+  if (lastLapLine) {
+    console.log("Recording for ", team, " = ", lastLapLine);
+    return lastLapLine[2];
   }
 }
 
@@ -97,28 +132,28 @@ let compareDeltaOnTrack = (ourTeam, theirTeam) => {
 }
 
 let updateTable = (team) => {
-
-  updateLastLapCell(team);
-  if (team == ourTeam) {
-    badTeams.forEach(team => {
-      comparisons.forEach(c => {
-        const time = compareLastNLaps(ourTeam, team, c);
-        updateCell(team, `last_${c}`, time);
-
-        const deltaOnTrack = compareDeltaOnTrack(ourTeam, team);
-        updateCell(team, 'delta_on_track', deltaOnTrack);
-
-      })
-    })
-  } else {
+  const update = (team) => {
     comparisons.forEach(c => {
       const time = compareLastNLaps(ourTeam, team, c);
       updateCell(team, `last_${c}`, time);
-
-      const deltaOnTrack = compareDeltaOnTrack(ourTeam, team);
-      updateCell(team, 'delta_on_track', deltaOnTrack);
-
     })
+  }
+
+  const deltaOnTrack = compareDeltaOnTrack(ourTeam, team);
+  updateCell(team, 'delta_on_track', deltaOnTrack);
+
+  updateCell(team, 'time_on_track', obj[team].timeOnTrack, false);
+  updateCell(team, 'laps_count', obj[team].numberOfLaps, false);
+
+  updateLastLapCell(team);
+
+
+  if (team == ourTeam) {
+    theBadTeams().forEach(team => {
+      update(team)
+    })
+  } else {
+    update(team)
   }
 }
 
@@ -133,14 +168,28 @@ const updateCell = (team, cellSuffix, time, comparisonTime = time) => {
     return;
   }
 
+  const oldValue = cell.innerHTML;
   cell.innerText = time;
+  const newValue = cell.innerHTML;
 
   colorCellBasedOnTime(comparisonTime, cell);
+
+  if (oldValue != newValue){
+    cell.style.fontWeight = '900';
+    document.getElementById(team).children[0].style.fontWeight = '900';
+    setTimeout(() => {
+        cell.style.fontWeight = 'normal';
+        document.getElementById(team).children[0].style.fontWeight = 'normal';
+    }, 5000);
+  }
+
+
 }
 
 
 const colorCellBasedOnTime = (time, element) => {
-  if ( time > 0) {
+  if (time == false){
+  } else if(time > 0) {
     element.classList = "bg-warning";
   } else {
     element.classList = "bg-success";
@@ -162,19 +211,21 @@ const updateLastLapCell = (team) => {
 
 
 const mapping = {
-  "unknown": "c1",
-  "position": "c2",
-  "name": "c4",
-  "nationality": "c5",
+  // "unknown": "c1",
+  // "position": "c2",
+  "name": "c6",
+  // "nationality": "c5",
 
   "sector1": "c7",
   "sector2": "c8",
-  "sector3": "c9",
-  "interval": "c10",
-  "lastLap": "c11",
-  "gap": "c12",
-  "fastestLap": "c13",
-  "drivenTime": "c14"
+  // "sector3": "c9",
+  // "interval": "c10",
+  "lastLap": "c9",
+  "fastestLap": "c10",
+  "gap": "c11",
+  "numberOfLaps": "c12",
+  "timeOnTrack": "c13",
+  "numberOfPits": "c14",
 };
 
 // Parsing from first message
@@ -190,7 +241,6 @@ const parseTeamsFromMessage = (htmlMessage) => {
 
     // Initialize an empty map to store teamId: Team Name pairs
     const teamMap = {};
-
     // Iterate over each row
     rows.forEach(row => {
 
@@ -198,16 +248,38 @@ const parseTeamsFromMessage = (htmlMessage) => {
         const teamId = row.getAttribute('data-id');
 
         // Get the Team Name from the <td> with data-id="*c4"
-        const teamNameCell = row.querySelector('td[data-id$="c4"]');
+        const teamNameCell = row.querySelector(`td[data-id$="${mapping["name"]}"]`);
+        const lastLapCell = row.querySelector(`td[data-id$="${mapping["lastLap"]}"]`);
+        const timeOnTrackCell = row.querySelector(`td[data-id$="${mapping["timeOnTrack"]}"]`);
+        const numberOfLapsCell = row.querySelector(`td[data-id$="${mapping["numberOfLaps"]}"]`);
+        const gapCell = row.querySelector(`td[data-id$="${mapping["gap"]}"]`);
+
+
 
         // If both teamId and teamNameCell are present, add them to the map
-        if (teamId && teamNameCell) {
+        if (teamId) {
+          obj[teamId] ||= { laps: [], crossings: [] }
+
+          if (teamNameCell) {
             const teamName = teamNameCell.textContent.trim();
             teamMap[teamId.replace(mapping["name"])] = teamName;
+          }
+
+          if (lastLapCell) {
+            obj[teamId].laps.push(timeStringToFloat(lastLapCell.innerText));
+          }
+
+          if (timeOnTrackCell) {
+            obj[teamId].timeOnTrack = timeOnTrackCell.innerText;
+          }
+
+          if (numberOfLapsCell) {
+            obj[teamId].numberOfLaps = numberOfLapsCell.innerText;
+          }
+
         }
     });
 
-    // debugger
     function generateCheckboxes(map) {
       const container = document.getElementById('checkbox-container');
       for (const [id, name] of Object.entries(map)) {
@@ -215,6 +287,7 @@ const parseTeamsFromMessage = (htmlMessage) => {
           checkbox.type = 'checkbox';
           checkbox.id = id;
           checkbox.name = name;
+          checkbox.checked = true;
 
           const label = document.createElement('label');
           label.htmlFor = id;
@@ -240,77 +313,48 @@ const comparisons = [1, 3, 5];
 
 function theBadTeams() {
   const checkboxes = document.querySelectorAll('#checkbox-container input[type="checkbox"]');
-  const checkedCheckboxes = [];
+  const selectedTeamId = [];
 
   checkboxes.forEach(checkbox => {
       if (checkbox.checked) {
-          checkedCheckboxes.push(checkbox.id);
+          selectedTeamId.push(checkbox.id);
       }
   });
 
-  return checkedCheckboxes;
+  return selectedTeamId;
 }
 
-let ourTeam = "r60359";
-let badTeams = ["r60352"];
-if (window.location.href.includes("s1")) {
-  badTeams = ["r60359"];
-  ourTeam = "r60352";
+function allTeams() {
+  const checkboxes = document.querySelectorAll('#checkbox-container input[type="checkbox"]');
+  const teamId = [];
+
+  checkboxes.forEach(checkbox => {
+    teamId.push(checkbox.id);
+  });
+
+  return teamId;
 }
 
-badTeams = [
-"r60365",
-"r60364",
-"r60357",
-"r60370",
-"r60363",
-"r60375",
-"r60372",
-"r60362",
-"r60373",
-"r60351",
-"r60355",
-"r60368",
-"r60359",
-"r60369",
-"r60371",
-"r60361",
-"r60374",
-"r60376",
-"r60367",
-"r60356",
-"r60366",
-"r60353",
-"r60360",
-"r60352",
-"r60358",
-"r60354",
-]
-badTeams.push(ourTeam);
-const allTeams = Array.from(new Set([ourTeam, ...badTeams]));
+let ourTeam = "r125";
 
-// MAIN
-//
-
-const ws = new WebSocket("ws://www.apex-timing.com:8182")
+const ws = new WebSocket("ws://www.apex-timing.com:8912")
 
 ws.onopen = () => {
   console.log("Connected to the WebSocket server");
 };
 
-allTeams.forEach(team => {
-  obj[team] = { laps: [], crossings: [] }
-})
 
 ws.onmessage = (event) => {
+
   if (teams == undefined && event.data.includes("grid||")) {
     const grid = event.data.split("\n").filter( line => line.includes("grid||"))[0].split("|")[2];
     teams = parseTeamsFromMessage(grid);
     dynamicSetUp(theBadTeams(), ourTeam, comparisons);
+
   }
 
-  if(event.data.includes(mapping["lastLap"]) && allTeams.some(team => event.data.includes(team))) {
-    allTeams.forEach(team => {
+  if(event.data.includes(mapping["lastLap"])) {
+    allTeams().forEach(team => {
       teamLastLap = getLastLapForTeam(team, event.data.split("\n"));
       if (teamLastLap){
         obj[team].laps.push(teamLastLap)
@@ -318,5 +362,15 @@ ws.onmessage = (event) => {
         updateTable(team);
       }
     })
+  }else if(event.data.includes(mapping["timeOnTrack"])) {
+    allTeams().forEach(team => {
+      teamTimeOnTrack = getLastOnTrackForTeam(team, event.data.split("\n"));
+      if (teamTimeOnTrack) {
+        obj[team].timeOnTrack = teamTimeOnTrack;
+        updateTable(team);
+      }
+    })
   }
+
+
 }
