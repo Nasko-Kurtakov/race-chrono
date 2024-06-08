@@ -3,7 +3,10 @@ obj = {};
 const dynamicSetUp = (badTeams, ourTeam, comparisons) => {
   document.getElementById("theTr").innerHTML = "";
 
-  document.getElementById("currentTeam").innerText = teams[ourTeam];
+  let ourTeamLaps = obj[ourTeam].laps;
+  document.getElementById("currentTeam").innerText = `${teams[ourTeam]} - ${
+    ourTeamLaps[ourTeamLaps.length - 1]
+  }`;
   document.getElementById(
     "theTr"
   ).innerHTML = `<th style='width:500px'>Team Name</th>
@@ -94,7 +97,7 @@ function floatToTimeString(floatSeconds) {
 }
 
 const getLastLapForTeam = (team, arrayOfData) => {
-  const currentTeamLastLapKey = `${team}${mapping["lastLap"]}`;
+  const currentTeamLastLapKey = `${team}${mapping["last lap"]}`;
   lastLapLine = arrayOfData
     .map((line) => line.split("|"))
     .filter((lineArr) => lineArr[0] == currentTeamLastLapKey)[0];
@@ -111,7 +114,7 @@ const getLastLapForTeam = (team, arrayOfData) => {
 };
 
 const getLastOnTrackForTeam = (team, arrayOfData) => {
-  const currentTeamLastLapKey = `${team}${mapping["timeOnTrack"]}`;
+  const currentTeamLastLapKey = `${team}${mapping["on track"]}`;
   lastLapLine = arrayOfData
     .map((line) => line.split("|"))
     .filter((lineArr) => lineArr[0] == currentTeamLastLapKey)[0];
@@ -227,19 +230,19 @@ const updateLastLapCell = (team) => {
 const mapping = {
   // "unknown": "c1",
   // "position": "c2",
-  name: "c5",
-  // "nationality": "c5",
+  team: "c5",
+  // "nation": "c5",
 
-  sector1: "c6",
-  sector2: "c7",
-  //"sector3": "c8",
-  // "interval": "c11",
-  lastLap: "c9",
-  fastestLap: "c12",
+  s1: "c6",
+  s2: "c7",
+  s3: "c8",
+  // "interv.": "c11",
+  "last lap": "c9",
+  "best lap": "c12",
   gap: "c10",
-  numberOfLaps: "c13",
-  timeOnTrack: "c14",
-  numberOfPits: "c15",
+  laps: "c13",
+  "on track": "c14",
+  pits: "c15",
 };
 
 // Parsing from first message
@@ -256,6 +259,9 @@ const parseTeamsFromMessage = (htmlMessage) => {
   // Get all rows in the table
   const rows = doc.querySelectorAll("tr");
 
+  //rows[0] is the table header
+  setTableMappings(rows[0]);
+
   // Initialize an empty map to store teamId: Team Name pairs
   const teamMap = {};
   // Iterate over each row
@@ -264,15 +270,15 @@ const parseTeamsFromMessage = (htmlMessage) => {
     const teamId = row.getAttribute("data-id");
 
     // Get the Team Name from the <td> with data-id="*c4"
-    const teamNameCell = row.querySelector(`td[data-id$="${mapping["name"]}"]`);
+    const teamNameCell = row.querySelector(`td[data-id$="${mapping["team"]}"]`);
     const lastLapCell = row.querySelector(
-      `td[data-id$="${mapping["lastLap"]}"]`
+      `td[data-id$="${mapping["last lap"]}"]`
     );
     const timeOnTrackCell = row.querySelector(
-      `td[data-id$="${mapping["timeOnTrack"]}"]`
+      `td[data-id$="${mapping["on track"]}"]`
     );
     const numberOfLapsCell = row.querySelector(
-      `td[data-id$="${mapping["numberOfLaps"]}"]`
+      `td[data-id$="${mapping["laps"]}"]`
     );
     const gapCell = row.querySelector(`td[data-id$="${mapping["gap"]}"]`);
 
@@ -282,7 +288,7 @@ const parseTeamsFromMessage = (htmlMessage) => {
 
       if (teamNameCell) {
         const teamName = teamNameCell.textContent.trim();
-        teamMap[teamId.replace(mapping["name"])] = teamName;
+        teamMap[teamId.replace(mapping["team"])] = teamName;
       }
 
       if (lastLapCell) {
@@ -374,7 +380,7 @@ ws.onmessage = (event) => {
     dynamicSetUp(theBadTeams(), ourTeam, comparisons);
   }
 
-  if (event.data.includes(mapping["lastLap"])) {
+  if (event.data.includes(mapping["last lap"])) {
     allTeams().forEach((team) => {
       teamLastLap = getLastLapForTeam(team, event.data.split("\n"));
       if (teamLastLap) {
@@ -383,7 +389,7 @@ ws.onmessage = (event) => {
         updateTable(team);
       }
     });
-  } else if (event.data.includes(mapping["timeOnTrack"])) {
+  } else if (event.data.includes(mapping["on track"])) {
     allTeams().forEach((team) => {
       teamTimeOnTrack = getLastOnTrackForTeam(team, event.data.split("\n"));
       if (teamTimeOnTrack) {
@@ -392,4 +398,16 @@ ws.onmessage = (event) => {
       }
     });
   }
+};
+
+const setTableMappings = (row) => {
+  Object.keys(mapping).forEach((k) => {
+    let node = new Array(...row.childNodes).find((c) => {
+      c.innerHTML.toLocaleLowerCase() == k;
+    });
+
+    if (node) {
+      mapping[k] = node.dataset.id;
+    }
+  });
 };
