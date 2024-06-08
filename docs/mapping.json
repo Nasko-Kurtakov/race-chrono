@@ -1,0 +1,15 @@
+{
+  "c1": "unknown",
+  "c2": "position",
+  "c4": "name",
+  "c5": "nationality",
+
+  "c7": "sector1",
+  "c8": "sector2",
+  "c9": "sector3",
+  "c10": "interval",
+  "c11": "lastLap",
+  "c12": "gap",
+  "c13": "fastestLap",
+  "c14": "drivenTime"
+}
